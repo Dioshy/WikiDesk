@@ -103,8 +103,10 @@ print("[WSGI] WikiDesk initialized successfully")
 # For gunicorn
 application = app
 
-if __name__ == '__main__':
-    # This won't be called by gunicorn, but useful for testing
-    port = int(os.environ.get('PORT', 5000))
-    print(f"[WSGI] Starting development server on port {port}")
-    socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
+# Always run the server when this file is executed (Railway calls python wsgi.py)
+port = int(os.environ.get('PORT', 5000))
+print(f"[WSGI] Starting WikiDesk on port {port}")
+print(f"[WSGI] Database: {'PostgreSQL (Railway)' if os.environ.get('DATABASE_URL') else 'SQLite (Local)'}")
+
+# Force the app to start
+socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
