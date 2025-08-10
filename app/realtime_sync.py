@@ -5,7 +5,12 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_login import current_user
 from datetime import datetime
 import logging
-from config.deployment import NetworkConfig
+
+# Try to import NetworkConfig, but continue without it if not available
+try:
+    from config.deployment import NetworkConfig
+except ImportError:
+    NetworkConfig = None
 
 logger = logging.getLogger(__name__)
 
