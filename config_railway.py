@@ -21,14 +21,14 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # Database configuration - auto-detect Railway PostgreSQL
-    if os.environ.get('DATABASE_URL'):
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if DATABASE_URL:
         # Railway PostgreSQL
-        db_url = os.environ.get('DATABASE_URL')
         # Fix for SQLAlchemy (replace postgres:// with postgresql://)
-        if db_url.startswith('postgres://'):
-            db_url = db_url.replace('postgres://', 'postgresql://', 1)
-        SQLALCHEMY_DATABASE_URI = db_url
-        print("[INFO] Using PostgreSQL database (Railway)")
+        if DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        print(f"[INFO] Using PostgreSQL database (Railway): {DATABASE_URL[:50]}...")
     else:
         # Local SQLite
         basedir = os.path.abspath(os.path.dirname(__file__))

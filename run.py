@@ -135,10 +135,10 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     # Check if running on Railway
-    if os.environ.get('RAILWAY_ENVIRONMENT'):
+    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL'):
         print(f"[INFO] Running on Railway (Production)")
-        socketio.run(app, host='0.0.0.0', port=port, debug=False)
+        socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
     else:
         print(f"[INFO] Running locally (Development)")
         print(f"[INFO] Access at: http://localhost:{port}")
-        socketio.run(app, host='0.0.0.0', port=port, debug=True)
+        socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)
