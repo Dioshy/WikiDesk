@@ -1,1 +1,1 @@
-web: python debug_env.py && python wsgi.py
+web: python start.py
