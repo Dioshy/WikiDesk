@@ -1,0 +1,1075 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - WikiDesk{% endblock %}
+
+{% block content %}
+<!-- Modern Page Header -->
+<div class="modern-header">
+    <div class="header-content">
+        <div class="header-text">
+            <h1 class="page-title">
+                <span class="title-gradient">Tableau de bord</span>
+            </h1>
+            <p class="welcome-text">
+                <i class="fas fa-user-circle"></i> 
+                Bienvenue, <span class="user-name">{{ current_user.full_name }}</span>
+            </p>
+            <div class="session-info">
+                <div class="session-item">
+                    <i class="fas fa-clock text-primary"></i>
+                    <span class="session-label">Temps en ligne:</span>
+                    <span class="online-time" id="online-time">00:00:00</span>
+                </div>
+                <div class="session-item">
+                    <i class="fas fa-calendar-day text-success"></i>
+                    <span class="session-label">Aujourd'hui:</span>
+                    <span class="current-date"></span>
+                </div>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="live-clock">
+                <i class="fas fa-clock"></i>
+                <span class="live-time"></span>
+            </div>
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <span class="stat-value" id="today-minutes-header">{{ today_minutes }}</span>
+                    <span class="stat-label">min aujourd'hui</span>
+                </div>
+                <div class="quick-stat">
+                    <span class="stat-value" id="today-calls-header">{{ today_calls }}</span>
+                    <span class="stat-label">appels</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Stats Overview -->
+<div class="stats-grid">
+    <div class="stat-card today-stats">
+        <div class="stat-header">
+            <i class="fas fa-calendar-day"></i>
+            <span>Aujourd'hui</span>
+        </div>
+        <div class="stat-content">
+            <div class="primary-stat">
+                <div class="stat-value" id="today-minutes">{{ today_minutes }}</div>
+                <div class="stat-label">Minutes travaillées</div>
+            </div>
+            <div class="secondary-stat">
+                <span class="stat-value" id="today-calls">{{ today_calls }}</span>
+                <span class="stat-label">entrées</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card session-stats">
+        <div class="stat-header">
+            <i class="fas fa-stopwatch"></i>
+            <span>Session</span>
+        </div>
+        <div class="stat-content">
+            <div class="primary-stat">
+                <div class="stat-value" id="session-duration">00:00:00</div>
+                <div class="stat-label">Temps en ligne</div>
+            </div>
+            <div class="secondary-stat">
+                <span class="stat-value" id="productivity-rate">0%</span>
+                <span class="stat-label">productivité</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card total-stats">
+        <div class="stat-header">
+            <i class="fas fa-chart-line"></i>
+            <span>Total</span>
+        </div>
+        <div class="stat-content">
+            <div class="primary-stat">
+                <div class="stat-value">{{ user_stats.total_minutes }}</div>
+                <div class="stat-label">Minutes totales</div>
+            </div>
+            <div class="secondary-stat">
+                <span class="stat-value">{{ user_stats.total_calls }}</span>
+                <span class="stat-label">entrées</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card efficiency-stats">
+        <div class="stat-header">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Performance</span>
+        </div>
+        <div class="stat-content">
+            <div class="primary-stat">
+                <div class="stat-value">{{ "%.1f"|format(user_stats.total_minutes / user_stats.total_calls if user_stats.total_calls > 0 else 0) }}</div>
+                <div class="stat-label">Min/entrée moy.</div>
+            </div>
+            <div class="secondary-stat">
+                <span class="stat-value">{{ "%.1f"|format(user_stats.total_minutes / 60) }}</span>
+                <span class="stat-label">heures</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Cards (inspired by cloud.png) -->
+<div class="category-grid">
+    <div class="category-card pictures" onclick="selectActeType('Gestion sinistre')" data-acte-type="Gestion sinistre">
+        <div class="category-icon">
+            <i class="fas fa-phone"></i>
+        </div>
+        <div class="category-title">Gestion sinistre</div>
+        <div class="category-count">Gestion des sinistres</div>
+    </div>
+    
+    <div class="category-card documents" onclick="selectActeType('Production')" data-acte-type="Production">
+        <div class="category-icon">
+            <i class="fas fa-handshake"></i>
+        </div>
+        <div class="category-title">Production</div>
+        <div class="category-count">Ventes et production</div>
+    </div>
+    
+    <div class="category-card videos" onclick="selectActeType('Bloc retour')" data-acte-type="Bloc retour">
+        <div class="category-icon">
+            <i class="fas fa-undo"></i>
+        </div>
+        <div class="category-title">Bloc retour</div>
+        <div class="category-count">Traitement des retours</div>
+    </div>
+    
+    {% if current_user.is_admin() %}
+    <div class="category-card audio" onclick="goToReports()" data-action="reports">
+        <div class="category-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="category-title">Analytique</div>
+        <div class="category-count">Voir les rapports</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Add Entry Form -->
+<div class="form-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0;">
+            <i class="fas fa-plus-circle"></i> Masque de saisie - Actes de gestion
+        </h2>
+        <a href="{{ url_for('dashboard.courtiers') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">
+            <i class="fas fa-building"></i> Gérer les courtiers
+        </a>
+    </div>
+    
+    <form method="POST" action="{{ url_for('dashboard.add_entry') }}" id="entry-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.date.label(class="form-label") }}
+                {{ form.date(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.time.label(class="form-label") }}
+                {{ form.time(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.courtier_id.label(class="form-label") }}
+                <div class="courtier-input-wrapper">
+                    <input type="text" 
+                           id="courtier-input" 
+                           name="courtier_name_input" 
+                           class="form-control" 
+                           list="courtiers-list"
+                           placeholder="Sélectionner ou saisir un courtier"
+                           autocomplete="off">
+                    <datalist id="courtiers-list">
+                        {% for courtier in courtiers %}
+                        <option value="{{ courtier.name }}" data-id="{{ courtier.id }}">{{ courtier.name }}</option>
+                        {% endfor %}
+                    </datalist>
+                    <input type="hidden" id="courtier_id" name="courtier_id" value="">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form.minutes.label(class="form-label") }}
+                {{ form.minutes(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.type_dacte.label(class="form-label") }}
+                {{ form.type_dacte(class="form-control") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.acte_de_gestion.label(class="form-label") }}
+                {{ form.acte_de_gestion(class="form-control", placeholder="Description de l'acte (optionnel)") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.dossier.label(class="form-label") }}
+                {{ form.dossier(class="form-control", placeholder="Optionnel") }}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            {{ form.client_name.label(class="form-label") }}
+            {{ form.client_name(class="form-control", placeholder="Nom du client (optionnel)") }}
+        </div>
+        
+        <div class="form-group">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-control", rows="3", placeholder="Détails supplémentaires (optionnel)") }}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Enregistrer l'acte
+        </button>
+    </form>
+</div>
+
+<!-- Activity Chart -->
+<div class="chart-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-chart-area"></i> Activité hebdomadaire - Tous les utilisateurs
+    </h2>
+    <div class="chart-wrapper" style="position: relative; height: 400px;">
+        <canvas id="activityChart"></canvas>
+    </div>
+</div>
+
+<!-- Top Clients -->
+{% if user_stats.top_clients %}
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-star"></i> Principaux clients
+    </h2>
+    
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nom du client</th>
+                    <th>Total minutes</th>
+                    <th>Pourcentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client_name, minutes in user_stats.top_clients %}
+                <tr>
+                    <td>{{ client_name }}</td>
+                    <td>{{ minutes }} min</td>
+                    <td>{{ "%.1f"|format((minutes / user_stats.total_minutes * 100) if user_stats.total_minutes > 0 else 0) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Multi-User Activity Chart
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const multiUserData = {{ multi_user_data|tojson }};
+    
+    // Color palette for different users
+    const colors = [
+        { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },  // Blue (current user)
+        { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },   // Red
+        { border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },  // Green
+        { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },  // Amber
+        { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },  // Violet
+        { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },  // Pink
+        { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },   // Cyan
+        { border: '#84cc16', bg: 'rgba(132, 204, 22, 0.1)' }   // Lime
+    ];
+    
+    // Get all unique dates and sort them
+    let allDates = new Set();
+    Object.values(multiUserData).forEach(userData => {
+        Object.keys(userData.data).forEach(date => allDates.add(date));
+    });
+    const dates = Array.from(allDates).sort();
+    
+    // Create datasets for each user
+    const datasets = [];
+    let colorIndex = 0;
+    
+    Object.entries(multiUserData).forEach(([userId, userData]) => {
+        const values = dates.map(date => userData.data[date] || 0);
+        
+        // Current user gets blue color and thicker line
+        const isCurrentUser = userData.is_current;
+        const color = isCurrentUser ? colors[0] : colors[colorIndex % colors.length];
+        
+        datasets.push({
+            label: userData.name,
+            data: values,
+            borderColor: color.border,
+            backgroundColor: color.bg,
+            borderWidth: isCurrentUser ? 4 : 2,
+            fill: false,
+            tension: 0.4,
+            pointRadius: isCurrentUser ? 6 : 4,
+            pointHoverRadius: isCurrentUser ? 8 : 6,
+            pointBackgroundColor: color.border,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2
+        });
+        
+        if (!isCurrentUser) colorIndex++;
+    });
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('fr-FR', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            }),
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Minutes travaillées',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Jours de la semaine',
+                        font: {
+                            size: 12,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Initialize WebSocket connection for real-time updates
+    const socket = io();
+    
+    socket.on('connect', function() {
+        console.log('Connecté au serveur');
+    });
+    
+    socket.on('entry_added', function(data) {
+        if (data.user_id === {{ current_user.id }}) {
+            // Update stats in real-time
+            updateStats();
+        }
+    });
+    
+    function updateStats() {
+        fetch('/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('today-minutes').textContent = data.today_minutes;
+                document.getElementById('today-calls').textContent = data.today_calls;
+            })
+            .catch(error => console.error('Erreur lors de la mise à jour des statistiques:', error));
+    }
+    
+    // Auto-refresh stats every 30 seconds
+    setInterval(updateStats, 30000);
+    
+    // User-specific storage keys
+    const userId = '{{ current_user.id }}';
+    
+    // Offline functionality (per-user)
+    const offlineEntriesKey = `offlineEntries_user_${userId}`;
+    let offlineEntries = JSON.parse(localStorage.getItem(offlineEntriesKey) || '[]');
+    
+    function saveOfflineEntry(formData) {
+        offlineEntries.push({
+            ...formData,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(offlineEntriesKey, JSON.stringify(offlineEntries));
+    }
+    
+    function syncOfflineEntries() {
+        if (offlineEntries.length > 0) {
+            fetch('/api/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ entries: offlineEntries })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.synced > 0) {
+                    localStorage.removeItem(offlineEntriesKey);
+                    offlineEntries = [];
+                    updateStats();
+                    alert(`${data.synced} entrées hors ligne synchronisées avec succès!`);
+                }
+            })
+            .catch(error => console.error('Erreur de synchronisation:', error));
+        }
+    }
+    
+    // Check for offline entries on page load
+    if (offlineEntries.length > 0) {
+        syncOfflineEntries();
+    }
+    
+    // Handle courtier input
+    const courtierInput = document.getElementById('courtier-input');
+    const courtierIdField = document.getElementById('courtier_id');
+    const courtiersList = document.getElementById('courtiers-list');
+    
+    // Store existing courtiers for lookup
+    const existingCourtiers = {};
+    for (let option of courtiersList.options) {
+        existingCourtiers[option.value.toLowerCase()] = option.getAttribute('data-id');
+    }
+    
+    courtierInput.addEventListener('blur', function() {
+        const inputValue = this.value.trim();
+        const lowerInput = inputValue.toLowerCase();
+        
+        if (inputValue) {
+            // Check if it's an existing courtier
+            if (existingCourtiers[lowerInput]) {
+                // Existing courtier - set the ID
+                courtierIdField.value = existingCourtiers[lowerInput];
+            } else {
+                // New courtier - ask if they want to add it
+                if (confirm(`Le courtier "${inputValue}" n'existe pas.\n\nVoulez-vous l'ajouter à la liste des courtiers ?`)) {
+                    // Add new courtier via AJAX
+                    fetch('/courtiers/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `name=${encodeURIComponent(inputValue)}&csrf_token=${document.querySelector('[name=csrf_token]').value}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Add to datalist
+                            const newOption = document.createElement('option');
+                            newOption.value = data.courtier.name;
+                            newOption.setAttribute('data-id', data.courtier.id);
+                            newOption.textContent = data.courtier.name;
+                            courtiersList.appendChild(newOption);
+                            
+                            // Update our lookup
+                            existingCourtiers[data.courtier.name.toLowerCase()] = data.courtier.id;
+                            
+                            // Set the ID
+                            courtierIdField.value = data.courtier.id;
+                            
+                            // Show success message
+                            alert(`Courtier "${data.courtier.name}" ajouté avec succès!`);
+                        } else {
+                            alert(`Erreur lors de l'ajout du courtier: ${data.error}`);
+                            this.value = '';
+                            courtierIdField.value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de l\'ajout du courtier:', error));
+                        alert('Erreur lors de l\'ajout du courtier');
+                        this.value = '';
+                        courtierIdField.value = '';
+                    });
+                } else {
+                    // User cancelled - clear the input
+                    this.value = '';
+                    courtierIdField.value = '';
+                }
+            }
+        }
+    });
+    
+    // Validate courtier on form submit
+    document.getElementById('entry-form').addEventListener('submit', function(e) {
+        if (!courtierIdField.value) {
+            e.preventDefault();
+            alert('Veuillez sélectionner ou ajouter un courtier valide.');
+            courtierInput.focus();
+            return false;
+        }
+    });
+    
+    // Handle form submission with offline support
+    document.getElementById('entry-form').addEventListener('submit', function(e) {
+        if (!navigator.onLine) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const entryData = {
+                courtier_id: parseInt(formData.get('courtier_id')),
+                minutes: parseInt(formData.get('minutes')),
+                acte_type: formData.get('acte_type'),
+                dossier: formData.get('dossier'),
+                client_name: formData.get('client_name'),
+                description: formData.get('description'),
+                date: formData.get('date'),
+                time: formData.get('time')
+            };
+            
+            saveOfflineEntry(entryData);
+            alert('Vous êtes hors ligne. L\'entrée est enregistrée localement et sera synchronisée lorsque la connexion sera rétablie.');
+            this.reset();
+        }
+    });
+    
+    // Listen for online/offline events
+    window.addEventListener('online', syncOfflineEntries);
+    window.addEventListener('offline', function() {
+        console.log('Vous êtes maintenant hors ligne. Les entrées seront enregistrées localement.');
+    });
+    
+    // Category selection functionality
+    window.selectActeType = function(acteType) {
+        const typeSelect = document.getElementById('type_dacte');
+        if (typeSelect) {
+            // Set the select value
+            for (let option of typeSelect.options) {
+                if (option.value === acteType || option.text === acteType) {
+                    option.selected = true;
+                    break;
+                }
+            }
+            
+            // Visual feedback - highlight selected category
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            const selectedCard = document.querySelector(`[data-acte-type="${acteType}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+                
+                // Scroll to form
+                document.getElementById('entry-form').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }
+        }
+    };
+    
+    // Analytics button redirect
+    window.goToReports = function() {
+        window.location.href = '/admin/reports';
+    };
+    
+    // Online time tracking functionality (per-user)
+    const sessionKey = `sessionStartTime_user_${userId}`;
+    let sessionStartTime = sessionStorage.getItem(sessionKey);
+    if (!sessionStartTime) {
+        sessionStartTime = Date.now();
+        sessionStorage.setItem(sessionKey, sessionStartTime);
+    }
+    
+    function updateOnlineTime() {
+        const now = Date.now();
+        const elapsed = now - parseInt(sessionStartTime);
+        
+        const hours = Math.floor(elapsed / 3600000);
+        const minutes = Math.floor((elapsed % 3600000) / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        const onlineTimeElements = document.querySelectorAll('#online-time, #session-duration');
+        onlineTimeElements.forEach(element => {
+            if (element) element.textContent = timeString;
+        });
+        
+        // Update productivity rate
+        const todayMinutes = parseInt(document.getElementById('today-minutes')?.textContent || '0');
+        const sessionMinutes = Math.floor(elapsed / 60000);
+        const productivityRate = sessionMinutes > 0 ? Math.min(Math.round((todayMinutes / sessionMinutes) * 100), 100) : 0;
+        
+        const productivityElement = document.getElementById('productivity-rate');
+        if (productivityElement) {
+            productivityElement.textContent = productivityRate + '%';
+        }
+    }
+    
+    // Update online time every second
+    setInterval(updateOnlineTime, 1000);
+    updateOnlineTime(); // Initial call
+    
+    // Update current date
+    const currentDateElement = document.querySelector('.current-date');
+    if (currentDateElement) {
+        const today = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        };
+        currentDateElement.textContent = today.toLocaleDateString('fr-FR', options);
+    }
+    
+    // Sync header stats with main stats
+    function updateHeaderStats() {
+        const todayMinutes = document.getElementById('today-minutes')?.textContent || '0';
+        const todayCalls = document.getElementById('today-calls')?.textContent || '0';
+        
+        const headerMinutes = document.getElementById('today-minutes-header');
+        const headerCalls = document.getElementById('today-calls-header');
+        
+        if (headerMinutes) headerMinutes.textContent = todayMinutes;
+        if (headerCalls) headerCalls.textContent = todayCalls;
+    }
+    
+    // Update header stats initially and whenever main stats change
+    updateHeaderStats();
+    
+    // Override the original updateStats function to also update header
+    const originalUpdateStats = updateStats;
+    updateStats = function() {
+        originalUpdateStats();
+        setTimeout(updateHeaderStats, 100); // Small delay to ensure main stats are updated first
+    };
+    
+});
+</script>
+
+<!-- Modern Dashboard Styles -->
+<style>
+/* Modern Header Styles */
+.modern-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+    opacity: 0.3;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    z-index: 1;
+}
+
+.header-text {
+    flex: 1;
+}
+
+.title-gradient {
+    background: linear-gradient(45deg, #fff, #f8f9ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.2rem;
+    margin: 0.5rem 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #fff;
+}
+
+.session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.session-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+}
+
+.session-item i {
+    width: 20px;
+    text-align: center;
+}
+
+.session-label {
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.online-time {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #4ade80;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.current-date {
+    font-weight: 600;
+    color: #fbbf24;
+}
+
+.header-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.live-clock {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 1rem 1.5rem;
+    border-radius: 15px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quick-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.quick-stat {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quick-stat .stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.quick-stat .stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 0.2rem;
+}
+
+/* Enhanced Stats Cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card:hover::before {
+    transform: scaleX(1);
+}
+
+.stat-card.today-stats::before {
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+}
+
+.stat-card.session-stats::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.stat-card.total-stats::before {
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+
+.stat-card.efficiency-stats::before {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    color: #4b5563;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-header i {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.today-stats .stat-header i {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1d4ed8;
+}
+
+.session-stats .stat-header i {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #059669;
+}
+
+.total-stats .stat-header i {
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    color: #7c3aed;
+}
+
+.efficiency-stats .stat-header i {
+    background: linear-gradient(135deg, #fef3c7, #fed7aa);
+    color: #d97706;
+}
+
+.stat-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.primary-stat .stat-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+}
+
+.primary-stat .stat-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.secondary-stat {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.secondary-stat .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #374151;
+}
+
+.secondary-stat .stat-label {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.1rem;
+}
+
+/* Text color classes */
+.text-primary {
+    color: #3b82f6;
+}
+
+.text-success {
+    color: #10b981;
+}
+
+/* Category card selection styles */
+.category-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.category-card.selected {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+    border: 2px solid #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(29, 78, 216, 0.05));
+}
+
+.category-card.selected .category-title {
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+.category-card.selected .category-icon {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    transform: scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .modern-header {
+        padding: 1.5rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .title-gradient {
+        font-size: 2rem;
+    }
+    
+    .session-info {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .header-stats {
+        align-items: flex-start;
+        width: 100%;
+    }
+    
+    .quick-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+}
+.courtier-input-wrapper {
+    position: relative;
+}
+
+#courtier-input {
+    width: 100%;
+}
+
+/* Style for datalist dropdown */
+datalist {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+</style>
+
+{% endblock %}

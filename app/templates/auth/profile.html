@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+
+{% block title %}Profil - WikiDesk{% endblock %}
+
+{% block content %}
+<!-- Modern Profile Header -->
+<div class="modern-profile-header">
+    <div class="profile-header-content">
+        <div class="profile-info-section">
+            <div class="profile-avatar">
+                <div class="avatar-circle">
+                    {{ user.full_name[0].upper() }}
+                </div>
+                <div class="status-indicator {% if user.is_active %}active{% else %}inactive{% endif %}"></div>
+            </div>
+            <div class="profile-details">
+                <h1 class="profile-name">{{ user.full_name }}</h1>
+                <p class="profile-username">@{{ user.username }}</p>
+                <div class="profile-role">
+                    <span class="role-badge {% if user.role == 'admin' %}admin{% else %}user{% endif %}">
+                        <i class="fas fa-{% if user.role == 'admin' %}crown{% else %}user{% endif %}"></i>
+                        {{ user.role.title() }}
+                    </span>
+                </div>
+                <div class="profile-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Membre depuis {{ user.created_at.strftime('%B %Y') if user.created_at else 'N/A' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Dernière connexion {{ user.last_login.strftime('%d/%m/%Y') if user.last_login else 'Première fois' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="profile-actions">
+            <button class="action-btn primary" onclick="showEditProfile()">
+                <i class="fas fa-edit"></i>
+                <span>Modifier</span>
+            </button>
+            <button class="action-btn secondary" onclick="showPasswordChange()">
+                <i class="fas fa-key"></i>
+                <span>Mot de passe</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Stats Cards -->
+<div class="profile-stats-grid">
+    {% set stats = user.get_stats() %}
+    
+    <div class="profile-stat-card primary">
+        <div class="stat-header">
+            <i class="fas fa-phone"></i>
+            <span>Total Appels</span>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.total_entries or 0 }}</div>
+            <div class="stat-trend positive">
+                <i class="fas fa-arrow-up"></i>
+                +{{ stats.today_entries or 0 }} aujourd'hui
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-stat-card success">
+        <div class="stat-header">
+            <i class="fas fa-clock"></i>
+            <span>Minutes Totales</span>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.total_minutes or 0 }}</div>
+            <div class="stat-trend">
+                <i class="fas fa-clock"></i>
+                {{ "%.1f"|format((stats.total_minutes or 0) / 60) }} heures
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-stat-card warning">
+        <div class="stat-header">
+            <i class="fas fa-calculator"></i>
+            <span>Moyenne</span>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ "%.1f"|format(stats.average_minutes) if stats.average_minutes else 0 }}</div>
+            <div class="stat-trend">
+                <i class="fas fa-stopwatch"></i>
+                min/appel
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-stat-card info">
+        <div class="stat-header">
+            <i class="fas fa-calendar-day"></i>
+            <span>Aujourd'hui</span>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ stats.today_entries or 0 }}</div>
+            <div class="stat-trend">
+                <i class="fas fa-fire"></i>
+                {% if (stats.today_entries or 0) > 0 %}Actif{% else %}Pas encore d'activité{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Information Cards -->
+<div class="info-cards-grid">
+    <!-- Personal Information -->
+    <div class="info-card">
+        <div class="card-header">
+            <h3><i class="fas fa-user-circle"></i> Informations Personnelles</h3>
+        </div>
+        <div class="card-content">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="info-details">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ user.email }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-user-tag"></i>
+                    </div>
+                    <div class="info-details">
+                        <div class="info-label">Nom d'utilisateur</div>
+                        <div class="info-value">{{ user.username }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-id-badge"></i>
+                    </div>
+                    <div class="info-details">
+                        <div class="info-label">ID Utilisateur</div>
+                        <div class="info-value">#{{ user.id }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="info-details">
+                        <div class="info-label">Niveau d'accès</div>
+                        <div class="info-value">{{ user.role.title() }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Activity Summary -->
+    <div class="info-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Résumé d'Activité</h3>
+        </div>
+        <div class="card-content">
+            <div class="activity-summary">
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-label">Cette semaine</div>
+                        <div class="activity-value">{{ stats.week_entries or 0 }} appels</div>
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-label">Ce mois</div>
+                        <div class="activity-value">{{ stats.month_entries or 0 }} appels</div>
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-label">Record journalier</div>
+                        <div class="activity-value">{{ stats.max_daily or 0 }} appels</div>
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-label">Total heures</div>
+                        <div class="activity-value">{{ "%.1f"|format((stats.total_minutes or 0) / 60) }}h</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <h3><i class="fas fa-bolt"></i> Actions Rapides</h3>
+    <div class="actions-grid">
+        <button class="quick-action-btn" onclick="window.location.href='{{ url_for('dashboard.index') }}'">
+            <div class="action-icon">
+                <i class="fas fa-home"></i>
+            </div>
+            <div class="action-text">
+                <div class="action-title">Tableau de bord</div>
+                <div class="action-desc">Retour à l'accueil</div>
+            </div>
+        </button>
+        
+        <button class="quick-action-btn" onclick="showEditProfile()">
+            <div class="action-icon">
+                <i class="fas fa-user-edit"></i>
+            </div>
+            <div class="action-text">
+                <div class="action-title">Modifier profil</div>
+                <div class="action-desc">Mettre à jour vos informations</div>
+            </div>
+        </button>
+        
+        <button class="quick-action-btn" onclick="showPasswordChange()">
+            <div class="action-icon">
+                <i class="fas fa-key"></i>
+            </div>
+            <div class="action-text">
+                <div class="action-title">Sécurité</div>
+                <div class="action-desc">Changer mot de passe</div>
+            </div>
+        </button>
+        
+        <button class="quick-action-btn" onclick="window.location.href='/auth/logout'">
+            <div class="action-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="action-text">
+                <div class="action-title">Déconnexion</div>
+                <div class="action-desc">Terminer la session</div>
+            </div>
+        </button>
+    </div>
+</div>
+
+<style>
+/* Modern Profile Header */
+.modern-profile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+    opacity: 0.3;
+}
+
+.profile-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.profile-info-section {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.profile-avatar {
+    position: relative;
+}
+
+.avatar-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fff, #f8f9ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #667eea;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+}
+
+.status-indicator.active {
+    background: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.status-indicator.inactive {
+    background: #ef4444;
+}
+
+.profile-details {
+    color: white;
+}
+
+.profile-name {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-username {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0 0 1rem 0;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.role-badge.admin {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.role-badge.user {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.profile-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.action-btn.primary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced Stats Cards */
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.profile-stat-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.profile-stat-card.primary::before {
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+}
+
+.profile-stat-card.success::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.profile-stat-card.warning::before {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.profile-stat-card.info::before {
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+
+.profile-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.profile-stat-card:hover::before {
+    transform: scaleX(1);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    color: #4b5563;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.stat-content .stat-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #1f2937;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.stat-trend.positive {
+    color: #10b981;
+}
+
+/* Information Cards */
+.info-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.info-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.info-card .card-header {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.info-card .card-header h3 {
+    margin: 0;
+    color: #374151;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+.info-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.info-item:hover {
+    background: #e2e8f0;
+    transform: translateX(4px);
+}
+
+.info-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.info-details {
+    flex: 1;
+}
+
+.info-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+.info-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.activity-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.activity-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+    background: #e2e8f0;
+    transform: translateY(-2px);
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin: 0 auto 0.5rem;
+}
+
+.activity-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+.activity-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Quick Actions */
+.quick-actions {
+    margin-bottom: 2rem;
+}
+
+.quick-actions h3 {
+    color: #374151;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.quick-action-btn:hover {
+    background: #f8fafc;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.action-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.action-text {
+    flex: 1;
+}
+
+.action-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.2rem;
+}
+
+.action-desc {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .modern-profile-header {
+        padding: 1.5rem;
+    }
+    
+    .profile-header-content {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .profile-info-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .profile-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .info-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+function showEditProfile() {
+    window.location.href = '{{ url_for("auth.edit_profile") }}';
+}
+
+function showPasswordChange() {
+    window.location.href = '{{ url_for("auth.change_password") }}';
+}
+
+// Add some interactivity
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate stats on load
+    const statValues = document.querySelectorAll('.stat-value');
+    statValues.forEach(stat => {
+        const finalValue = stat.textContent;
+        stat.textContent = '0';
+        
+        let current = 0;
+        const target = parseInt(finalValue) || 0;
+        const increment = target / 50;
+        
+        const counter = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                stat.textContent = finalValue;
+                clearInterval(counter);
+            } else {
+                stat.textContent = Math.floor(current);
+            }
+        }, 30);
+    });
+});
+</script>
+{% endblock %}

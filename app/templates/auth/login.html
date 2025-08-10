@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - WikiDesk{% endblock %}
+
+{% block login_content %}
+<div class="login-container">
+    <div class="login-card">
+        <h1 class="login-title">
+            <i class="fas fa-desktop"></i>
+            WikiDesk
+        </h1>
+        
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control", placeholder="Entrez votre nom d'utilisateur") }}
+                {% if form.username.errors %}
+                    <div class="field-errors">
+                        {% for error in form.username.errors %}
+                            <small class="error-text">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control", placeholder="Entrez votre mot de passe") }}
+                {% if form.password.errors %}
+                    <div class="field-errors">
+                        {% for error in form.password.errors %}
+                            <small class="error-text">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-sign-in-alt"></i> Connexion
+            </button>
+        </form>
+        
+        <div style="text-align: center; margin-top: 2rem; color: #666;">
+            <small>
+                <i class="fas fa-info-circle"></i>
+                Contactez votre administrateur pour accéder au système
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+.field-errors {
+    margin-top: 0.5rem;
+}
+
+.error-text {
+    color: #e74c3c;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.form-control:invalid {
+    border-color: #e74c3c;
+}
+</style>
+{% endblock %}

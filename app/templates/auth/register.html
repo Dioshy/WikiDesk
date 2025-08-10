@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Add User - Minutes Tracker{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-user-plus"></i> Add New User
+        </h1>
+        <p>Create a new user account</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Users
+        </a>
+    </div>
+</div>
+
+<!-- Registration Form -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">User Details</h2>
+    
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control", placeholder="Enter username") }}
+                {% if form.username.errors %}
+                    <div class="field-errors">
+                        {% for error in form.username.errors %}
+                            <small class="error-text">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control", placeholder="user@company.com") }}
+                {% if form.email.errors %}
+                    <div class="field-errors">
+                        {% for error in form.email.errors %}
+                            <small class="error-text">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.full_name.label(class="form-label") }}
+                {{ form.full_name(class="form-control", placeholder="Full Name") }}
+                {% if form.full_name.errors %}
+                    <div class="field-errors">
+                        {% for error in form.full_name.errors %}
+                            <small class="error-text">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.role.label(class="form-label") }}
+                {{ form.role(class="form-control") }}
+                {% if form.role.errors %}
+                    <div class="field-errors">
+                        {% for error in form.role.errors %}
+                            <small class="error-text">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control", placeholder="Enter password (minimum 6 characters)") }}
+            {% if form.password.errors %}
+                <div class="field-errors">
+                    {% for error in form.password.errors %}
+                        <small class="error-text">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Create User
+            </button>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<style>
+.field-errors {
+    margin-top: 0.5rem;
+}
+
+.error-text {
+    color: #e74c3c;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.form-control:invalid {
+    border-color: #e74c3c;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    margin-left: 1rem;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+</style>
+{% endblock %}

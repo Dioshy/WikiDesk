@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Management - Minutes Tracker{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-database"></i> Backup Management
+        </h1>
+        <p>Protect your data with automated backups</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin.create_backup') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Backup Now
+        </a>
+    </div>
+</div>
+
+<!-- Backup Info -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ backups|length }}</div>
+        <div class="stat-label">Total Backups</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">
+            {% if backups %}
+                {{ "%.1f"|format(backups|sum(attribute='size_mb')) }}
+            {% else %}
+                0.0
+            {% endif %}
+        </div>
+        <div class="stat-label">Total Size (MB)</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">
+            {% if backups %}
+                {{ backups[0].timestamp.strftime('%m/%d') }}
+            {% else %}
+                Never
+            {% endif %}
+        </div>
+        <div class="stat-label">Last Backup</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value">Daily</div>
+        <div class="stat-label">Auto Schedule</div>
+    </div>
+</div>
+
+<!-- Backup Features -->
+<div class="category-grid">
+    <div class="category-card pictures">
+        <div class="category-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="category-title">Automatic</div>
+        <div class="category-count">Daily at 2:00 AM</div>
+    </div>
+    
+    <div class="category-card documents">
+        <div class="category-icon">
+            <i class="fas fa-compress-arrows-alt"></i>
+        </div>
+        <div class="category-title">Compressed</div>
+        <div class="category-count">Gzip compression</div>
+    </div>
+    
+    <div class="category-card videos">
+        <div class="category-icon">
+            <i class="fas fa-history"></i>
+        </div>
+        <div class="category-title">Retention</div>
+        <div class="category-count">30 days / 10 backups</div>
+    </div>
+    
+    <div class="category-card audio">
+        <div class="category-icon">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="category-title">Secure</div>
+        <div class="category-count">Safe storage</div>
+    </div>
+</div>
+
+<!-- Backup List -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-list"></i> Available Backups
+    </h2>
+    
+    {% if backups %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>Created</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-file-archive" style="color: var(--primary-gradient);"></i>
+                            {{ backup.filename }}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="backup-type-badge backup-{{ backup.type }}">
+                            {{ backup.type.replace('_', ' ').title() }}
+                        </span>
+                    </td>
+                    <td>{{ backup.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ backup.size_mb }} MB</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-small btn-primary" 
+                                    onclick="downloadBackup('{{ backup.filename }}')"
+                                    title="Download backup">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            
+                            <button class="btn-small btn-success" 
+                                    onclick="restoreBackup('{{ backup.filename }}')"
+                                    title="Restore from backup">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            
+                            <button class="btn-small btn-danger" 
+                                    onclick="deleteBackup('{{ backup.filename }}')"
+                                    title="Delete backup">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: #666;">
+        <i class="fas fa-database" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        <p>No backups found. Create your first backup to get started.</p>
+        <a href="{{ url_for('admin.create_backup') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Backup
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Backup Instructions -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-info-circle"></i> Backup Information
+    </h2>
+    
+    <div class="backup-info">
+        <div class="info-item">
+            <h3><i class="fas fa-robot"></i> Automatic Backups</h3>
+            <p>The system automatically creates daily backups at 2:00 AM. These backups are stored with the prefix "auto_daily".</p>
+        </div>
+        
+        <div class="info-item">
+            <h3><i class="fas fa-hand-paper"></i> Manual Backups</h3>
+            <p>You can create manual backups anytime using the "Create Backup Now" button. These are stored with the prefix "manual".</p>
+        </div>
+        
+        <div class="info-item">
+            <h3><i class="fas fa-broom"></i> Cleanup Policy</h3>
+            <p>Old backups are automatically cleaned up weekly. The system keeps the most recent 10 backups and any backups from the last 30 days.</p>
+        </div>
+        
+        <div class="info-item">
+            <h3><i class="fas fa-exclamation-triangle"></i> Restore Warning</h3>
+            <p><strong>Important:</strong> Restoring a backup will replace all current data. Make sure to create a current backup before restoring.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.backup-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.backup-manual {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+.backup-auto-daily {
+    background: var(--success-gradient);
+    color: white;
+}
+
+.backup-auto-weekly {
+    background: var(--warning-gradient);
+    color: white;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+.btn-success {
+    background: var(--success-gradient);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger-gradient);
+    color: white;
+}
+
+.backup-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.info-item {
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--primary-gradient);
+}
+
+.info-item h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-item p {
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+</style>
+
+<script>
+function downloadBackup(filename) {
+    const link = document.createElement('a');
+    link.href = `/admin/backup/download/${filename}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function restoreBackup(filename) {
+    if (confirm(`Are you sure you want to restore from "${filename}"?\n\nThis will replace ALL current data. This action cannot be undone.\n\nIt's recommended to create a backup of current data first.`)) {
+        if (confirm('Last warning: This will permanently replace your current database. Continue?')) {
+            fetch(`/admin/backup/restore/${filename}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Backup restored successfully! Please refresh the page.');
+                    location.reload();
+                } else {
+                    alert('Error restoring backup: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error restoring backup: ' + error);
+            });
+        }
+    }
+}
+
+function deleteBackup(filename) {
+    if (confirm(`Are you sure you want to delete backup "${filename}"?\n\nThis action cannot be undone.`)) {
+        fetch(`/admin/backup/delete/${filename}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Backup deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error deleting backup: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting backup: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

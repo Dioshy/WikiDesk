@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord administrateur - WikiDesk{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-cog"></i> Administration
+        </h1>
+        <p>Vue d'ensemble et gestion du système</p>
+    </div>
+    <div class="live-clock">
+        <i class="fas fa-clock"></i>
+        <span class="live-time"></span>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value" id="active-users">{{ total_users }}</div>
+        <div class="stat-label">Utilisateurs actifs</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value" id="total-entries">{{ total_entries }}</div>
+        <div class="stat-label">Total des entrées</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value" id="today-entries">{{ today_entries }}</div>
+        <div class="stat-label">Entrées aujourd'hui</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value" id="recent-activity">0</div>
+        <div class="stat-label">Activité dernière heure</div>
+    </div>
+</div>
+
+<!-- Management Categories -->
+<div class="category-grid">
+    <a href="{{ url_for('admin.users') }}" class="category-card pictures">
+        <div class="category-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="category-title">Utilisateurs</div>
+        <div class="category-count">Gérer les comptes utilisateurs</div>
+    </a>
+    
+    <a href="{{ url_for('admin.courtiers') }}" class="category-card documents">
+        <div class="category-icon">
+            <i class="fas fa-building"></i>
+        </div>
+        <div class="category-title">Courtiers</div>
+        <div class="category-count">Courtiers d'assurance</div>
+    </a>
+    
+    <a href="{{ url_for('admin.reports') }}" class="category-card videos">
+        <div class="category-icon">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <div class="category-title">Rapports</div>
+        <div class="category-count">Export et analyses</div>
+    </a>
+    
+    <a href="{{ url_for('admin.backup') }}" class="category-card audio">
+        <div class="category-icon">
+            <i class="fas fa-database"></i>
+        </div>
+        <div class="category-title">Sauvegarde</div>
+        <div class="category-count">Protection des données</div>
+    </a>
+</div>
+
+<!-- Top Users This Month -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-trophy"></i> Meilleurs utilisateurs ce mois
+    </h2>
+    
+    {% if top_users %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Total minutes</th>
+                    <th>Total entrées</th>
+                    <th>Moy. min/entrée</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user_name, total_minutes, total_entries in top_users %}
+                <tr>
+                    <td>{{ user_name }}</td>
+                    <td>{{ total_minutes }} min</td>
+                    <td>{{ total_entries }}</td>
+                    <td>{{ "%.1f"|format(total_minutes / total_entries) }} min</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>Aucune donnée disponible pour ce mois.</p>
+    {% endif %}
+</div>
+
+<!-- Top Clients This Month -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-star"></i> Principaux clients ce mois
+    </h2>
+    
+    {% if top_clients %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nom du client</th>
+                    <th>Total minutes</th>
+                    <th>Total entrées</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client_name, total_minutes, total_entries in top_clients %}
+                <tr>
+                    <td>{{ client_name }}</td>
+                    <td>{{ total_minutes }} min</td>
+                    <td>{{ total_entries }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>Aucune donnée client disponible pour ce mois.</p>
+    {% endif %}
+</div>
+
+<!-- Recent Activity -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-clock"></i> Activité récente
+    </h2>
+    
+    {% if recent_entries %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Heure</th>
+                    <th>Utilisateur</th>
+                    <th>Courtier</th>
+                    <th>Minutes</th>
+                    <th>Client</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in recent_entries %}
+                <tr>
+                    <td>{{ entry.created_at.strftime('%H:%M') }}</td>
+                    <td>{{ entry.user.full_name }}</td>
+                    <td>{{ entry.courtier.name }}</td>
+                    <td>{{ entry.minutes }} min</td>
+                    <td>{{ entry.client_name or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>Aucune activité récente.</p>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Real-time stats updates
+    function updateLiveStats() {
+        fetch('/admin/api/live-stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('active-users').textContent = data.active_users;
+                document.getElementById('today-entries').textContent = data.today_entries;
+                document.getElementById('recent-activity').textContent = data.recent_activity;
+            })
+            .catch(error => console.error('Error updating stats:', error));
+    }
+    
+    // Update stats every 30 seconds
+    setInterval(updateLiveStats, 30000);
+    updateLiveStats(); // Initial load
+    
+    // WebSocket for real-time updates
+    const socket = io();
+    socket.on('entry_added', function(data) {
+        updateLiveStats();
+        
+        // Show notification
+        const notification = document.createElement('div');
+        notification.className = 'flash-message flash-info';
+        notification.textContent = `New entry by ${data.entry.user_name}`;
+        
+        const container = document.querySelector('.flash-messages');
+        container.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    });
+});
+</script>
+{% endblock %}

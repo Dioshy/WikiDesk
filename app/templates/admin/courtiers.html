@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Courtiers - WikiDesk{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-building"></i> Gestion des Courtiers
+        </h1>
+        <p>Gérer les courtiers d'assurance</p>
+    </div>
+</div>
+
+<!-- Formulaire d'ajout de courtier -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-plus"></i> Ajouter un Nouveau Courtier
+    </h2>
+    
+    <form method="POST" action="{{ url_for('admin.add_courtier') }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control", placeholder="Nom du courtier") }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.odoo_so_id.label(class="form-label") }}
+                {{ form.odoo_so_id(class="form-control", placeholder="ID Odoo (optionnel)") }}
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Ajouter le Courtier
+        </button>
+    </form>
+</div>
+
+<!-- Liste des Courtiers -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-list"></i> Tous les Courtiers
+    </h2>
+    
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>ID Odoo SO</th>
+                    <th>Statut</th>
+                    <th>Créé le</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for courtier in courtiers %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-building" style="color: var(--primary-gradient);"></i>
+                            {{ courtier.name }}
+                        </div>
+                    </td>
+                    <td>{{ courtier.odoo_so_id or '-' }}</td>
+                    <td>
+                        {% if courtier.is_active %}
+                            <span class="status-badge status-active">Actif</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">Inactif</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ courtier.created_at.strftime('%d/%m/%Y') if courtier.created_at else '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.toggle_courtier_status', courtier_id=courtier.id) }}" 
+                           class="btn-small {% if courtier.is_active %}btn-warning{% else %}btn-success{% endif %}"
+                           onclick="return confirm('Êtes-vous sûr de vouloir {{ 'désactiver' if courtier.is_active else 'activer' }} ce courtier ?')">
+                            {% if courtier.is_active %}
+                                <i class="fas fa-ban"></i> Désactiver
+                            {% else %}
+                                <i class="fas fa-check"></i> Activer
+                            {% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.btn-small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}

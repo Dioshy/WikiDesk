@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Courtiers - WikiDesk{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-building"></i> Gestion des Courtiers
+        </h1>
+        <p>Ajouter et gérer les courtiers d'assurance</p>
+    </div>
+</div>
+
+<!-- Add Courtier Form -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-plus"></i> Ajouter un Nouveau Courtier
+    </h2>
+    
+    <form method="POST" action="{{ url_for('dashboard.add_courtier') }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control", placeholder="Nom du courtier") }}
+                {% if form.name.errors %}
+                    <div class="form-error">
+                        {% for error in form.name.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.odoo_so_id.label(class="form-label") }}
+                {{ form.odoo_so_id(class="form-control", placeholder="ID Odoo (optionnel)") }}
+                {% if form.odoo_so_id.errors %}
+                    <div class="form-error">
+                        {% for error in form.odoo_so_id.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Ajouter le Courtier
+        </button>
+    </form>
+</div>
+
+<!-- Courtiers List -->
+<div class="form-container">
+    <h2 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-list"></i> Liste des Courtiers
+    </h2>
+    
+    <div class="search-box" style="margin-bottom: 1rem;">
+        <input type="text" id="courtierSearch" class="form-control" placeholder="Rechercher des courtiers...">
+    </div>
+    
+    <div class="table-container">
+        <table class="table" id="courtiersTable">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>ID Odoo SO</th>
+                    <th>Statut</th>
+                    <th>Créé le</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for courtier in courtiers %}
+                <tr class="courtier-row">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-building" style="color: var(--primary-gradient);"></i>
+                            <span class="courtier-name">{{ courtier.name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ courtier.odoo_so_id or '-' }}</td>
+                    <td>
+                        {% if courtier.is_active %}
+                            <span class="status-badge status-active">Actif</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">Inactif</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ courtier.created_at.strftime('%d/%m/%Y') if courtier.created_at else '-' }}</td>
+                    <td>
+                        {% if current_user.is_admin() %}
+                        <button class="btn btn-warning btn-sm" onclick="toggleStatus({{ courtier.id }}, '{{ courtier.name }}', {{ courtier.is_active|lower }})"
+                                title="{% if courtier.is_active %}Désactiver{% else %}Activer{% endif %} ce courtier">
+                            {% if courtier.is_active %}
+                                <i class="fas fa-ban"></i>
+                            {% else %}
+                                <i class="fas fa-check"></i>
+                            {% endif %}
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-danger btn-sm" onclick="confirmDelete({{ courtier.id }}, '{{ courtier.name }}')"
+                                title="Supprimer ce courtier">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 1rem; text-align: center;">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour au Tableau de bord
+        </a>
+    </div>
+</div>
+
+<!-- Hidden form for delete action -->
+<form id="deleteForm" method="POST" style="display: none;">
+    <!-- CSRF token removed for compatibility -->
+</form>
+
+<style>
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.search-box {
+    position: relative;
+}
+
+.search-box input {
+    padding-left: 2.5rem;
+}
+
+.search-box::before {
+    content: "\f002";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.form-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.courtier-row {
+    transition: background-color 0.2s;
+}
+
+.courtier-row:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 0.25rem;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #d39e00;
+}
+</style>
+
+<script>
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('courtierSearch');
+    const table = document.getElementById('courtiersTable');
+    const rows = table.getElementsByClassName('courtier-row');
+    
+    searchInput.addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        for (let row of rows) {
+            const name = row.querySelector('.courtier-name').textContent.toLowerCase();
+            
+            if (name.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+});
+
+// Delete confirmation function
+function confirmDelete(courtierId, courtierName) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le courtier "${courtierName}" ?\n\nCette action est irréversible.`)) {
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = `/courtiers/delete/${courtierId}`;
+        deleteForm.submit();
+    }
+}
+
+// Toggle status function (for admin only)
+function toggleStatus(courtierId, courtierName, isActive) {
+    const action = isActive ? 'désactiver' : 'activer';
+    if (confirm(`Êtes-vous sûr de vouloir ${action} le courtier "${courtierName}" ?`)) {
+        window.location.href = `/admin/courtiers/${courtierId}/toggle-status`;
+    }
+}
+</script>
+{% endblock %}
