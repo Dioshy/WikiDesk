@@ -17,16 +17,38 @@ sys.path.insert(0, str(app_dir))
 
 print("[WSGI] Starting WikiDesk for Railway...")
 
-# Force PostgreSQL detection
+# Check all environment variables for PostgreSQL
 DATABASE_URL = os.environ.get('DATABASE_URL')
+# Also check Railway's automatic variables
+if not DATABASE_URL:
+    # Railway sometimes sets these variables automatically
+    postgres_vars = {k: v for k, v in os.environ.items() if 'POSTGRES' in k.upper()}
+    if postgres_vars:
+        print(f"[WSGI] Found PostgreSQL variables: {list(postgres_vars.keys())}")
+        # Try to construct DATABASE_URL
+        host = os.environ.get('PGHOST', 'localhost')
+        port = os.environ.get('PGPORT', '5432')
+        user = os.environ.get('PGUSER', 'postgres')
+        password = os.environ.get('PGPASSWORD', '')
+        database = os.environ.get('PGDATABASE', 'railway')
+        
+        if all([host, port, user, password, database]):
+            DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+            os.environ['DATABASE_URL'] = DATABASE_URL
+            print(f"[WSGI] Constructed DATABASE_URL from PostgreSQL vars")
+
 if DATABASE_URL:
     # Fix postgres:// to postgresql:// for SQLAlchemy
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
         os.environ['DATABASE_URL'] = DATABASE_URL
-    print(f"[WSGI] PostgreSQL detected: {DATABASE_URL[:50]}...")
+    print(f"[WSGI] PostgreSQL will be used: {DATABASE_URL[:50]}...")
 else:
-    print("[WSGI] WARNING: No DATABASE_URL found!")
+    print("[WSGI] WARNING: No PostgreSQL found - will use SQLite")
+    print("[WSGI] Available env vars:")
+    for key in sorted(os.environ.keys()):
+        if any(keyword in key.upper() for keyword in ['DATABASE', 'POSTGRES', 'PG']):
+            print(f"  {key}: {os.environ[key][:20]}..." if len(os.environ[key]) > 20 else f"  {key}: {os.environ[key]}")
 
 # Import after setting environment
 from app import create_app, socketio, db
